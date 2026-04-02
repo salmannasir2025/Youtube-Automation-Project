@@ -62,3 +62,31 @@
 #### Notes:
 - The file now has structured session-level history for incremental tracking.
 - The next session should include post-implementation functional validation and an iteration on rendering logic.
+
+---
+
+### Session 3: 2026-04-02 (Sandbox run)
+**Focus:** Execute current code path in virtual environment and verify minimal bootstrap.
+
+#### Starting State (pre-session):
+- All modules updated per Session 2.
+- `main.py` minimal startup flow (Governor, APIManager, UrduEngine initialization only).
+- Dependencies installed via `.venv` (due to system-managed Python policy).
+
+#### Accomplishments:
+- Created and activated `.venv`.
+- Installed pinned dependencies from `requirements.txt`.
+- Ran `python main.py` via `.venv` interpreter, output:
+  - `Active Profile: LEGACY_INTEL`
+  - `OSCF Software Initialized...`
+- Verified that the runtime state is stable and no crash occurs with current skeleton logic.
+
+#### Remaining Work:
+- Implement and validate full pipeline with audio file and generation path.
+- Implement `APIManager.load_keys()` logic and/or fill in `.env` key retrieval.
+- Expand `UrduEngine.create_scroll_video` from placeholder to actual frame rendering.
+
+#### Notes:
+- This session includes state checkpoints and confirm safe sandbox run.
+- Minor environment policy issue encountered previously (`externally-managed-environment`) resolved by using venv.
+
