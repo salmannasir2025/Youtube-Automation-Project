@@ -28,3 +28,37 @@
 - [ ] Implement API Manager (GUI-based settings handler).
 - [ ] Implement Urdu Engine (Text-scroller with Jameel Noori Nastaleeq).
 - [ ] Develop Scroll Speed logic: `Scroll Speed = (Total Text Height / Audio File Duration)`.
+
+---
+
+### Session 2: 2026-04-02 (Current)
+**Focus:** Code alignment to user-provided snippets and tracking setup
+
+#### Starting State (pre-session):
+- Existing project had working but more complex implementations in `main.py`, `api_manager.py`, `urdu_engine.py`.
+- `governor.py` already matched desired behavior; no changes required.
+- `requirements.txt` had non-pinned packages.
+
+#### Accomplishments:
+- Updated `governor.py` to confirm current requested logic.
+- Replaced `urdu_engine.py` with simplified scroll logic using `VideoClip`, `AudioFileClip`, and placeholder frame generation.
+- Updated `api_manager.py` to minimal key management class with `load_keys` stub and failover method.
+- Rewrote `main.py` to initialize modules with clean startup pattern.
+- Pin dependencies in `requirements.txt`:
+  - `moviepy==1.0.3`
+  - `psutil==5.9.5`
+  - `cryptography==41.0.0`
+  - `python-dotenv==1.0.0`
+  - `google-generativeai==0.3.1`
+- Hardcoded local font usage in `urdu_engine.py` to use `./Jameel Noori Nastaleeq.ttf` where available.
+- Added progress logging request acknowledgment.
+
+#### Remaining Work:
+- Implement `APIManager.load_keys()` actual decryption and `.env` handling.
+- Implement real text renders for `UrduEngine.create_scroll_video` (currently placeholder frame buffer).
+- Add failover checks and complete workflow in `main.py` (audio file presence, script generation, render invocation).
+- Add test coverage and optional GUI CLI interface for user flow.
+
+#### Notes:
+- The file now has structured session-level history for incremental tracking.
+- The next session should include post-implementation functional validation and an iteration on rendering logic.

@@ -1,70 +1,25 @@
-import os
-import psutil
 import platform
+import psutil
+import os
 
 class Governor:
-    """
-    The Governor Module manages system resources and hardware acceleration profiles.
-    Specifically tuned for:
-    - Primary: MacBook Pro 9,2 (Dual-Core i5, 16GB RAM, macOS)
-    - Secondary: i7 Linux Laptop
-    """
-    
     def __init__(self):
-        self.cores = psutil.cpu_count(logical=False)
-        self.logical_cores = psutil.cpu_count(logical=True)
-        self.system = platform.system()
-        self.machine = platform.machine()
+        self.os_type = platform.system()
+        self.cpu_count = psutil.cpu_count(logical=False)
+        self.ram_gb = psutil.virtual_memory().total / (1024**3)
         self.profile = self._determine_profile()
-        
+
     def _determine_profile(self):
-        """
-        Determines the hardware profile based on CPU cores and OS.
-        """
-        if self.cores < 4:
+        if self.cpu_count <= 2:
             return "LEGACY_INTEL"
-        return "STANDARD_COMPUTE"
+        return "PERFORMANCE"
 
     def get_ffmpeg_params(self):
-        """
-        Returns the appropriate FFmpeg video encoder and parameters based on the profile.
-        """
-        if self.profile == "LEGACY_INTEL":
-            if self.system == "Darwin":
-                # macOS hardware acceleration for H.264
-                return {
-                    "vcodec": "h264_videotoolbox",
-                    "crf": None, # Videotoolbox uses different rate control
-                    "bitrate": "4000k",
-                    "preset": None
-                }
-            else:
-                # Linux/Windows legacy Intel might use vaapi or just libx264
-                return {
-                    "vcodec": "libx264",
-                    "crf": 23,
-                    "preset": "veryfast"
-                }
-        
-        # Default for Standard Compute (e.g., i7 Linux)
-        return {
-            "vcodec": "libx264",
-            "crf": 18,
-            "preset": "medium"
-        }
+        if self.os_type == "Darwin" and self.profile == "LEGACY_INTEL":
+            # Optimized for your MacBook Pro 9,2
+            return ["-c:v", "h264_videotoolbox", "-b:v", "2000k", "-preset", "fast"]
+        return ["-c:v", "libx264", "-preset", "ultrafast"]
 
-    def status_report(self):
-        """
-        Prints a diagnostic report of the current system profile.
-        """
-        print(f"--- Youtube-Content Factory Governor ---")
-        print(f"OS: {self.system} ({self.machine})")
-        print(f"Cores: {self.cores} Physical / {self.logical_cores} Logical")
-        print(f"Detected Profile: {self.profile}")
-        params = self.get_ffmpeg_params()
-        print(f"Recommended FFmpeg Encoder: {params['vcodec']}")
-        print(f"----------------------------------------")
-
-if __name__ == "__main__":
-    gov = Governor()
-    gov.status_report()
+# Usage for your software
+governor = Governor()
+print(f"Active Profile: {governor.profile}")
