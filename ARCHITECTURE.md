@@ -292,3 +292,68 @@ Youtube-Automation-Project/
 ---
 
 *Last Updated: 2026-04-03 (Session 4)*
+---
+
+## LLM Integration
+
+### Supported Providers
+
+| Provider | Model | API Base | Free Tier |
+|----------|-------|----------|-----------|
+| Google Gemini | gemini-2.0-flash | `generativelanguage.googleapis.com` | ✅ |
+| xAI Grok | grok-2 | `api.x.ai/v1` | ✅ |
+| Moonshot Kimi | kimi-echo | `api.moonshot.cn/v1` | ✅ |
+| DeepSeek | deepseek-chat | `api.deepseek.com/v1` | ✅ |
+| Alibaba Qwen | qwen-plus | `dashscope.aliyuncs.com` | ✅ |
+
+### Priority Order
+```
+Gemini → Grok → Kimi → DeepSeek → Qwen
+```
+
+### LLM Client Usage
+```python
+from agents import LLMClient
+
+client = LLMClient(api_manager)
+script = client.generate_script(topic, research_context, style)
+verification = client.verify_claims(script_text, sources)
+```
+
+---
+
+## Pipeline Execution
+
+### Full Pipeline (6 Steps)
+```bash
+python main.py "Your topic" --style educational --publish
+```
+
+### Steps:
+1. **Research** - Search web, gather sources
+2. **Write** - Generate script with LLM
+3. **Fact-Check** - Verify claims
+4. **Audio** - Generate voice (ElevenLabs/gTTS)
+5. **Video** - Render scroll video
+6. **Publish** - Upload to YouTube
+
+### Output
+- `output/audio_*.mp3` - Generated voice
+- `output/video_*.mp4` - Final video
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GEMINI_API_KEY` | ❌ | Google Gemini API |
+| `GROK_API_KEY` | ❌ | xAI Grok API |
+| `KIMI_API_KEY` | ❌ | Moonshot Kimi API |
+| `DEEPSEEK_API_KEY` | ❌ | DeepSeek API |
+| `QIANWEN_API_KEY` | ❌ | Alibaba Qwen API |
+| `BRAVE_API_KEY` | ❌ | Brave Search API |
+| `ELEVENLABS_API_KEY` | ❌ | ElevenLabs TTS |
+| `YOUTUBE_API_KEY` | ❌ | YouTube Data API |
+
+*Last Updated: 2026-04-03 (Session 7)*

@@ -9,6 +9,7 @@ from .audio_agent import AudioAgent
 from .video_agent import VideoAgent
 from .publisher_agent import PublisherAgent, Platform, PublishStatus
 from .orchestrator import Orchestrator, PipelineState
+from .llm_client import LLMClient
 
 __all__ = [
     "ResearchAgent",
@@ -20,5 +21,6 @@ __all__ = [
     "Platform",
     "PublishStatus",
     "Orchestrator",
-    "PipelineState"
+    "PipelineState",
+    "LLMClient"
 ]

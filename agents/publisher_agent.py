@@ -2,9 +2,12 @@
 Publisher Agent - Handles video publishing to platforms
 """
 import json
+import os
+import subprocess
 from datetime import datetime
 from typing import Optional, List, Dict
 from enum import Enum
+import requests
 
 
 class Platform(Enum):
@@ -32,6 +35,11 @@ class PublisherAgent:
         self.platforms = {}  # Store platform credentials
         self.publish_history = []
         
+        # YouTube config if available
+        self.youtube_config = None
+        if api_manager.has_key("YOUTUBE"):
+            self.youtube_config = api_manager.get_youtube_config()
+    
     def add_platform(self, platform: Platform, credentials: dict):
         """
         Add platform credentials for publishing.
@@ -67,17 +75,19 @@ class PublisherAgent:
             platforms = [Platform.YOUTUBE]
             
         print(f"📤 Publisher Agent: Publishing to {[p.value for p in platforms]}")
+        print(f"   Title: {title[:50]}...")
         
         results = {
             "timestamp": datetime.now().isoformat(),
             "video_path": video_path,
             "title": title,
+            "description": description[:200] + "..." if len(description) > 200 else description,
             "platforms": {},
             "overall_status": "pending"
         }
         
         for platform in platforms:
-            if platform.value not in self.platforms:
+            if platform.value not in self.platforms and platform != Platform.YOUTUBE:
                 print(f"⚠️ Publisher Agent: {platform.value} not configured")
                 continue
                 
@@ -111,27 +121,168 @@ class PublisherAgent:
         }
         
         if platform == Platform.YOUTUBE:
-            # YouTube API integration would go here
-            # Using google-api-python-client
-            print(f"   → YouTube: Would upload '{title[:30]}...'")
-            result["status"] = "published"
-            result["video_id"] = "mock_video_id"
-            result["url"] = "https://youtube.com/watch?v=mock_id"
-            
+            result = self._publish_youtube(video_path, title, description, tags, schedule_time)
         elif platform == Platform.TIKTOK:
-            print(f"   → TikTok: Would upload '{title[:30]}...'")
-            result["status"] = "published"
-            result["video_id"] = "mock_tiktok_id"
-            result["url"] = "https://tiktok.com/@user/video/mock"
-            
+            result = self._publish_tiktok(video_path, title, description, tags)
         elif platform == Platform.INSTAGRAM:
-            print(f"   → Instagram: Would upload '{title[:30]}...'")
-            result["status"] = "published"
-            
+            result = self._publish_instagram(video_path, title, description)
         elif platform == Platform.TWITTER:
-            print(f"   → Twitter: Would upload '{title[:30]}...'")
-            result["status"] = "published"
+            result = self._publish_twitter(video_path, title, description)
             
+        return result
+    
+    def _publish_youtube(self, video_path: str, title: str, description: str,
+                         tags: List[str], schedule_time: Optional[datetime]) -> dict:
+        """Publish to YouTube using Data API v3."""
+        result = {
+            "platform": "youtube",
+            "status": "pending",
+            "video_id": None,
+            "url": None,
+            "error": None
+        }
+        
+        # Check if video file exists
+        if not os.path.exists(video_path):
+            result["status"] = "error"
+            result["error"] = "Video file not found"
+            return result
+        
+        # Check if youtube API available
+        if not self.youtube_config or not self.youtube_config.get("api_key"):
+            print("   → YouTube: No API key, saving metadata for manual upload")
+            result["status"] = "pending_manual"
+            result["metadata"] = {
+                "title": title,
+                "description": description,
+                "tags": tags,
+                "video_path": video_path
+            }
+            return result
+        
+        # Use YouTube API
+        api_key = self.youtube_config["api_key"]
+        
+        try:
+            # Step 1: Initialize upload
+            upload_url = "https://www.googleapis.com/upload/youtube/v3/videos"
+            params = {
+                "part": "snippet,status",
+                "uploadType": "resumable",
+                "key": api_key
+            }
+            
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            body = {
+                "snippet": {
+                    "title": title,
+                    "description": description,
+                    "tags": tags,
+                    "categoryId": "22"  # People & Blogs
+                },
+                "status": {
+                    "privacyStatus": "public" if not schedule_time else "private",
+                    "selfDeclaredMadeForKids": False
+                }
+            }
+            
+            response = requests.post(upload_url, params=params, headers=headers, 
+                                    json=body, timeout=30)
+            
+            if response.status_code == 401:
+                # Token expired or invalid
+                result["error"] = "YouTube API authentication failed"
+                result["status"] = "error"
+                return result
+            
+            if response.status_code != 200:
+                result["error"] = f"API error: {response.status_code}"
+                result["status"] = "error"
+                return result
+            
+            # Get upload URL from headers
+            upload_url = response.headers.get("Location")
+            
+            # Step 2: Upload video file
+            with open(video_path, "rb") as f:
+                video_data = f.read()
+            
+            headers = {"Content-Type": "video/*"}
+            response = requests.put(upload_url, headers=headers, data=video_data, 
+                                  timeout=300)
+            
+            if response.status_code == 200:
+                result["status"] = "published"
+                result["video_id"] = response.json().get("id")
+                result["url"] = f"https://youtube.com/watch?v={result['video_id']}"
+                print(f"   → YouTube: Published! {result['url']}")
+            else:
+                result["error"] = f"Upload failed: {response.status_code}"
+                result["status"] = "error"
+                
+        except Exception as e:
+            result["error"] = str(e)
+            result["status"] = "error"
+            print(f"   → YouTube: Error - {e}")
+        
+        return result
+    
+    def _publish_tiktok(self, video_path: str, title: str, description: str, 
+                       tags: List[str]) -> dict:
+        """Publish to TikTok (requires TikTok API - placeholder)."""
+        result = {
+            "platform": "tiktok",
+            "status": "pending",
+            "video_id": None,
+            "url": None,
+            "error": "TikTok API not implemented - requires manual upload"
+        }
+        
+        # Save metadata for manual upload
+        metadata_file = video_path.replace(".mp4", "_tiktok_metadata.json")
+        with open(metadata_file, "w") as f:
+            json.dump({
+                "title": title,
+                "description": description,
+                "tags": tags
+            }, f, indent=2)
+        
+        print(f"   → TikTok: Saved metadata for manual upload")
+        
+        return result
+    
+    def _publish_instagram(self, video_path: str, title: str, 
+                          description: str) -> dict:
+        """Publish to Instagram (requires Instagram API - placeholder)."""
+        result = {
+            "platform": "instagram",
+            "status": "pending",
+            "video_id": None,
+            "url": None,
+            "error": "Instagram API not implemented - requires manual upload"
+        }
+        
+        print(f"   → Instagram: Manual upload required")
+        
+        return result
+    
+    def _publish_twitter(self, video_path: str, title: str, 
+                        description: str) -> dict:
+        """Publish to Twitter/X (requires Twitter API - placeholder)."""
+        result = {
+            "platform": "twitter",
+            "status": "pending",
+            "video_id": None,
+            "url": None,
+            "error": "Twitter API not implemented - requires manual upload"
+        }
+        
+        print(f"   → Twitter: Manual upload required")
+        
         return result
     
     def get_publish_history(self) -> List[dict]:
@@ -152,9 +303,12 @@ class PublisherAgent:
 # Standalone test
 if __name__ == "__main__":
     class MockAPIManager:
-        pass
+        def has_key(self, provider):
+            return provider == "YOUTUBE"
+        
+        def get_youtube_config(self):
+            return {"api_key": None}
     
     agent = PublisherAgent(MockAPIManager())
-    agent.add_platform(Platform.YOUTUBE, {"token": "mock_token"})
     result = agent.publish("video.mp4", "Test Video", "Description", [Platform.YOUTUBE])
-    print(json.dumps(result, indent=2))
+    print(f"Status: {result['overall_status']}")
