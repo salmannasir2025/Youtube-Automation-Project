@@ -244,15 +244,33 @@ class Orchestrator:
         
         self.project_state.set_agent_status(self.AGENT_ARTISAN, "in_progress", {"phase": "audio"})
         
-        text = self.writer_agent.format_for_urdu_engine(script_data)
+        # Get voice source from metadata or default to AI_TTS
+        voice_source_str = self.project_state.state.get("metadata", {}).get("voice_source", "ai_tts")
         
+        # Configure audio agent based on source
+        from .audio_agent import VoiceSource
+        if voice_source_str == "pre_recorded":
+            pre_recorded_path = self.project_state.state.get("metadata", {}).get("pre_recorded_audio_path")
+            if pre_recorded_path:
+                self.audio_agent.set_voice_source(VoiceSource.PRE_RECORDED, pre_recorded_path)
+            else:
+                print("   ⚠️ No pre-recorded path found, falling back to AI_TTS")
+                self.audio_agent.set_voice_source(VoiceSource.AI_TTS)
+        elif voice_source_str == "none":
+            self.audio_agent.set_voice_source(VoiceSource.NONE)
+        else:
+            self.audio_agent.set_voice_source(VoiceSource.AI_TTS)
+        
+        text = self.writer_agent.format_for_urdu_engine(script_data)
         output_path = os.path.join(self.output_dir, f"audio_{self.project_id}.mp3")
-        result = self.audio_agent.generate_voice(text, output_path)
+        
+        # Use new process_audio method
+        result = self.audio_agent.process_audio(text, output_path)
         
         self.project_state.set_agent_status(
             self.AGENT_ARTISAN,
             "completed" if result.get("status") == "completed" else "failed",
-            {"phase": "audio", "duration": result.get("duration_seconds", 0)}
+            {"phase": "audio", "duration": result.get("duration_seconds", 0), "voice_source": result.get("voice_source", "unknown")}
         )
         self.project_state.set_agent_output(self.AGENT_ARTISAN, result.get("output_path", output_path))
     

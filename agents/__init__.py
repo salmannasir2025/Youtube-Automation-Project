@@ -6,7 +6,7 @@ v2.0 - Graph-based State Machine Architecture
 from .research_agent import ResearchAgent
 from .writer_agent import WriterAgent
 from .fact_checker_agent import FactCheckerAgent
-from .audio_agent import AudioAgent
+from .audio_agent import AudioAgent, VoiceSource
 from .video_agent import VideoAgent
 from .publisher_agent import PublisherAgent, Platform, PublishStatus
 from .orchestrator import Orchestrator, PipelineState
@@ -17,6 +17,7 @@ __all__ = [
     "WriterAgent", 
     "FactCheckerAgent",
     "AudioAgent",
+    "VoiceSource",
     "VideoAgent",
     "PublisherAgent",
     "Platform",

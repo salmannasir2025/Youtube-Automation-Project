@@ -1,13 +1,13 @@
 from governor import Governor
 from urdu_engine import UrduEngine
 from api_manager import APIManager
-from agents import Orchestrator, Platform
+from agents import Orchestrator, Platform, VoiceSource
 
 def main():
     # Initialize all components
     print("=" * 60)
     print("🎬 OSCF - Youtube Automation Project")
-    print("   Multi-Agent Video Creation System")
+    print("   Multi-Agent Video Creation System v2.0")
     print("=" * 60)
     
     # Initialize components
@@ -22,13 +22,12 @@ def main():
     print(f"   OS: {gov.os_type}")
     
     print("\n🤖 Agents Loaded:")
-    print("   • Research Agent - Web search & information gathering")
-    print("   • Writer Agent - Script generation with LLM")
-    print("   • Fact-Checker Agent - Claim verification")
-    print("   • Audio Agent - Voice generation (ElevenLabs/gTTS)")
-    print("   • Video Agent - Scroll video rendering")
-    print("   • Publisher Agent - YouTube/TikTok/Instagram/Twitter")
-    print("   • Orchestrator - Pipeline coordination")
+    print("   • Scout (Research) - Web search & information gathering")
+    print("   • Scribe (Writer) - Script generation with LLM")
+    print("   • Verifier (Fact-Checker) - Claim verification")
+    print("   • Artisan (Audio+Video) - Voice & video rendering")
+    print("   • Publisher - YouTube/TikTok/Instagram/Twitter")
+    print("   • Orchestrator - State Machine coordination")
     
     # Show LLM status
     llm_config = api.get_llm_config()
@@ -49,62 +48,98 @@ def main():
     if api.has_key("YOUTUBE"):
         print(f"   ✅ YouTube API")
     
-    # Check if user wants to run pipeline
+    # Parse command line arguments
     import sys
     
     if len(sys.argv) > 1:
-        # Run with command line arguments
-        topic = " ".join(sys.argv[1:])
+        # Get topic (first non-flag argument)
+        topic = None
         style = "educational"
         publish = False
+        voice_source = "ai_tts"
+        pre_recorded_path = None
         
-        # Parse optional flags
-        if "--publish" in sys.argv:
-            publish = True
-        if "--style" in sys.argv:
-            idx = sys.argv.index("--style")
-            if idx + 1 < len(sys.argv):
-                style = sys.argv[idx + 1]
+        i = 1
+        while i < len(sys.argv):
+            arg = sys.argv[i]
+            
+            if arg == "--publish":
+                publish = True
+            elif arg == "--style" and i + 1 < len(sys.argv):
+                style = sys.argv[i + 1]
+                i += 1
+            elif arg == "--voice" and i + 1 < len(sys.argv):
+                voice_source = sys.argv[i + 1]
+                i += 1
+            elif arg == "--audio-path" and i + 1 < len(sys.argv):
+                pre_recorded_path = sys.argv[i + 1]
+                i += 1
+            elif not arg.startswith("--"):
+                topic = arg
+            i += 1
+        
+        if not topic:
+            print("\n❌ Error: Please provide a topic")
+            print("\nUsage: python main.py \"Your topic\" [options]")
+            print("\nOptions:")
+            print("  --style [educational|news|storytelling]  Script style")
+            print("  --voice [ai_tts|pre_recorded|none]         Voice source")
+            print("  --audio-path <path>                       Path to pre-recorded audio")
+            print("  --publish                                 Publish to YouTube")
+            return {"error": "No topic provided"}
         
         print("\n" + "=" * 60)
         print(f"Running pipeline: {topic}")
-        print(f"Style: {style} | Publish: {publish}")
+        print(f"Style: {style} | Voice: {voice_source} | Publish: {publish}")
         print("=" * 60 + "\n")
         
+        # Set voice source in project state
+        orchestrator.project_state.set_metadata("voice_source", voice_source)
+        if voice_source == "pre_recorded" and pre_recorded_path:
+            orchestrator.project_state.set_metadata("pre_recorded_audio_path", pre_recorded_path)
+        
+        # Run pipeline
         result = orchestrator.run_pipeline(topic, style, publish=publish)
         
         print("\n📋 Pipeline Results:")
         print(f"   Status: {result['status']}")
-        print(f"   Topic: {result['topic']}")
+        print(f"   Topic: {result['summary'].get('topic', result.get('project_id'))}")
         
-        if result.get('script'):
-            print(f"   Script: ✅ ({result['script'].get('word_count', 0)} words)")
+        if result.get('summary'):
+            print(f"   Agents: {result['summary'].get('agents_completed', 0)}/{result['summary'].get('agents_total', 0)} completed")
         
-        if result.get('video_path'):
-            print(f"   Video: ✅ {result['video_path']}")
+        if result.get('full_state', {}).get('metadata', {}).get('voice_source'):
+            print(f"   Voice: {result['full_state']['metadata']['voice_source']}")
         
-        if result.get('publish'):
-            pub = result['publish']
-            print(f"   Published: {pub.get('overall_status')}")
-            for platform, info in pub.get('platforms', {}).items():
-                print(f"      - {platform}: {info.get('status')}")
+        if result.get('full_state', {}).get('agents', {}).get('artisan', {}).get('metadata', {}).get('phase') == 'audio':
+            audio_meta = result['full_state']['agents']['artisan']['metadata']
+            print(f"   Audio: {audio_meta.get('voice_source', 'unknown')} ({audio_meta.get('duration', 0):.1f}s)")
         
         if result.get('errors'):
             print(f"\n❌ Errors:")
             for err in result['errors']:
-                print(f"   - {err}")
+                print(f"   - {err['error']}")
+        
+        # Show state file location
+        print(f"\n📁 State file: {result.get('state_file')}")
         
         return result
     else:
-        # Interactive mode
+        # Show help
         print("\n" + "=" * 60)
         print("Ready for video creation!")
         print("=" * 60)
         print("\nUsage:")
         print("  python main.py \"Your topic here\"")
-        print("  python main.py \"Your topic\" --style educational")
+        print("  python main.py \"Your topic\" --style news")
+        print("  python main.py \"Your topic\" --voice ai_tts")
+        print("  python main.py \"Your topic\" --voice pre_recorded --audio-path myvoice.mp3")
         print("  python main.py \"Your topic\" --publish")
-        print("\nStyles: educational, news, storytelling")
+        print("\nOptions:")
+        print("  --style [educational|news|storytelling]  Script style")
+        print("  --voice [ai_tts|pre_recorded|none]       Voice source")
+        print("  --audio-path <path>                       Path to pre-recorded audio (for pre_recorded)")
+        print("  --publish                                 Publish to YouTube after rendering")
         
         return {"status": "ready"}
     
