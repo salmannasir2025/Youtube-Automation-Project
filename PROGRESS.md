@@ -90,3 +90,388 @@
 - This session includes state checkpoints and confirm safe sandbox run.
 - Minor environment policy issue encountered previously (`externally-managed-environment`) resolved by using venv.
 
+---
+
+### Session 4: 2026-04-03
+**Focus:** Multi-Agent System Implementation
+
+#### Starting State (pre-session):
+- Project has working Governor (hardware profiling), UrduEngine (skeleton), APIManager (skeleton)
+- Main.py only initializes modules, no pipeline execution
+- Branch `multi-agent-system` created from main for new features
+
+#### Accomplishments:
+- **Branching Strategy:** Created new branch `multi-agent-system` for multi-agent features
+- **Agent Architecture:** Built complete 7-agent system:
+  - `ResearchAgent` - Searches web, gathers topic information with source tracking
+  - `WriterAgent` - Converts research to video scripts (educational, news, storytelling styles)
+  - `FactCheckerAgent` - Verifies claims, cross-references with sources, flags uncertainty
+  - `AudioAgent` - Voice generation placeholder + audio cleanup (noise reduction, normalize)
+  - `VideoAgent` - Renders scroll video using UrduEngine (1080x1920 vertical)
+  - `PublisherAgent` - Publishes to YouTube, TikTok, Instagram, Twitter with scheduling
+  - `Orchestrator` - Main coordinator managing pipeline state and agent communication
+
+- **File Structure:** Created `agents/` package with:
+  - `agents/__init__.py` - Package exports
+  - `agents/research_agent.py` - Research logic (246 lines)
+  - `agents/writer_agent.py` - Script writing with LLM integration point (161 lines)
+  - `agents/fact_checker_agent.py` - Fact verification with claim extraction (145 lines)
+  - `agents/audio_agent.py` - TTS and audio processing (103 lines)
+  - `agents/video_agent.py` - Video rendering wrapper (80 lines)
+  - `agents/publisher_agent.py` - Multi-platform publishing (183 lines)
+  - `agents/orchestrator.py` - Pipeline coordinator with state machine (191 lines)
+
+- **Integration:** Updated `main.py` to initialize and run full pipeline as example
+- **Validation:** All Python files pass syntax check (`py_compile`)
+
+#### Technical Decisions:
+- **Agent Communication:** Shared `context` dict in Orchestrator, not agent-to-agent direct messaging
+- **State Machine:** Pipeline uses `PipelineState` enum (IDLE → RESEARCHING → WRITING → FACT_CHECKING → COMPLETED/FAILED)
+- **Modularity:** Each agent is independent, can be used standalone or in pipeline
+- **Platform Enum:** Used Python enums for Platform and PublishStatus for type safety
+
+#### Remaining Work:
+- [ ] Integrate LLM API (Gemini/Grok) into WriterAgent for actual script generation
+- [ ] Implement real web search in ResearchAgent (Brave API or similar)
+- [ ] Connect AudioAgent to TTS service (ElevenLabs, Google TTS)
+- [ ] Implement YouTube Data API in PublisherAgent
+- [ ] Add error handling and retry logic for API failures
+- [ ] Add video thumbnail generation
+- [ ] Implement scheduling for delayed publishing
+
+#### Notes:
+- All agents have placeholder implementations - actual API integrations needed
+- Orchestrator creates branch from main to keep original code clean
+- Agent architecture inspired by AutoGen/CrewAI patterns but custom-built for this use case
+
+---
+
+### Session 5: 2026-04-03
+**Focus:** API Integration & Environment Configuration
+
+#### Accomplishments:
+- **Enhanced APIManager:** Full implementation with:
+  - Multi-provider support: Gemini, Grok, Brave Search, ElevenLabs, YouTube
+  - Environment variable loading from `.env` file via `python-dotenv`
+  - Automatic key detection and configuration
+  - Provider failover logic (Gemini → Grok)
+  - Encryption utilities for secure key storage
+  - Configuration getters for each service (`get_llm_config()`, `get_brave_config()`, etc.)
+
+- **Created .env.example:** Template with all API keys:
+  - `GEMINI_API_KEY` / `GROK_API_KEY` (LLM)
+  - `BRAVE_API_KEY` (ResearchAgent web search)
+  - `ELEVENLABS_API_KEY` (AudioAgent TTS)
+  - `YOUTUBE_API_KEY` (PublisherAgent)
+  - Model override options
+
+- **Environment Setup:** Added auto-loading from `.env` file in project root
+
+#### Technical Decisions:
+- **Key Priority:** Gemini preferred, Grok as fallback for LLM
+- **Provider Methods:** Each service has dedicated `get_*_config()` method
+- **Failover:** `get_active_brain()` returns first available LLM key
+- **Encryption:** Fernet-based encryption for storing keys securely
+
+#### Environment Setup (User Steps):
+```bash
+# 1. Copy template
+cp .env.example .env
+
+# 2. Edit .env with your API keys
+nano .env
+```
+
+#### Remaining Work:
+- [x] API Manager basic implementation
+- [ ] LLM integration in WriterAgent (connect to APIManager)
+- [ ] Web search integration in ResearchAgent (Brave API)
+- [ ] TTS integration in AudioAgent (ElevenLabs)
+- [ ] YouTube API integration in PublisherAgent
+- [ ] Add error handling for rate limits and API failures
+
+#### Notes:
+- System works without optional APIs (graceful degradation)
+- All API calls use environment variables - no hardcoded keys
+- Add `python-dotenv` to requirements.txt if missing
+
+---
+
+### Session 6: 2026-04-03
+**Focus:** Multi-Provider LLM Support (Free Options)
+
+#### Accomplishments:
+- **Expanded LLM Providers:** Added support for multiple free LLM options in `APIManager`:
+  - **Google Gemini** - `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-pro`
+  - **xAI Grok** - `grok-2`, `grok-beta`
+  - **Moonshot Kimi** - `kimi-echo`, `kimi-k2`
+  - **DeepSeek** - `deepseek-chat`
+  - **Alibaba Qwen** - `qwen-turbo`, `qwen-plus`, `qwen-max`
+
+- **Provider Configuration:** Added `PROVIDERS` dict with:
+  - Base URLs for each API
+  - Available models per provider
+  - Default model selection
+  - `get_provider_config(provider)` method
+
+- **Enhanced Methods:**
+  - `get_all_llm_providers()` - lists all configured LLM providers
+  - `get_provider_config(provider)` - gets specific provider details
+  - Priority failover: Gemini → Grok → Kimi → DeepSeek → Qwen
+
+- **Updated .env.example:** Added all new provider env vars
+
+#### Technical Decisions:
+- **Priority Order:** Gemini > Grok > Kimi > DeepSeek > Qwen
+- **Auto-detection:** Checks each provider in priority order, uses first available
+- **Model Override:** Each provider can override default model via env var (e.g., `GEMINI_MODEL`)
+
+#### Remaining Work:
+- [x] APIManager supports multiple free LLMs
+- [ ] LLM integration in WriterAgent (actual API calls)
+- [ ] Web search integration in ResearchAgent (Brave API)
+- [ ] TTS integration in AudioAgent (ElevenLabs)
+- [ ] YouTube API integration in PublisherAgent
+
+#### Notes:
+- All 5 LLM providers have free tiers
+- User can configure multiple providers for failover
+- Each provider has unique base_url and model naming
+
+
+---
+
+### Session 7: 2026-04-03
+**Focus:** Full Agent Integration - Complete Pipeline Implementation
+
+#### Accomplishments:
+
+- **LLM Client (`agents/llm_client.py`):** Unified LLM client with:
+  - Support for all 5 providers: Gemini, Grok, Kimi, DeepSeek, Qwen
+  - Proper API formatting for each provider
+  - Script generation with style prompts
+  - Claim verification using LLM
+
+- **Research Agent Enhanced:**
+  - Brave Search API integration for real web search
+  - Fallback to generated content when no API available
+  - Source tracking and key findings extraction
+  - Context generation for WriterAgent
+
+- **Writer Agent Enhanced:**
+  - LLM integration for actual script generation
+  - Template fallback when no API key available
+  - Section-based script structure (intro/body/summary)
+  - Word count and duration estimation
+
+- **Fact-Checker Agent Enhanced:**
+  - LLM-based claim verification against sources
+  - Verification results: verified/uncertain/failed
+  - Overall status: passed/warning/failed
+
+- **Audio Agent Enhanced:**
+  - ElevenLabs API integration for TTS
+  - gTTS fallback (free alternative)
+  - Audio cleanup with ffmpeg (noise reduction, normalization)
+  - Background music mixing capability
+  - Duration detection
+
+- **Video Agent Enhanced:**
+  - MoviePy integration for rendering
+  - Resolution configuration (1080x1920 vertical)
+  - Placeholder video creation when tools unavailable
+  - Duration calculation from audio
+
+- **Publisher Agent Enhanced:**
+  - YouTube Data API v3 integration
+  - Metadata export for manual upload (TikTok, Instagram, Twitter)
+  - Scheduling support for delayed publishing
+  - Publish history tracking
+
+- **Orchestrator Enhanced:**
+  - Full 6-step pipeline: Research → Write → Fact-Check → Audio → Video → Publish
+  - State machine tracking all pipeline stages
+  - Error handling and graceful degradation
+  - Output directory management
+
+- **Main.py Updated:**
+  - CLI interface with topic argument
+  - Style flag (educational, news, storytelling)
+  - Publish flag for automatic uploading
+  - Hardware and API status display
+
+#### Technical Decisions:
+- **Graceful Degradation:** All agents work without API keys (template/fallback)
+- **Error Handling:** Pipeline continues with warnings, fails on critical errors
+- **Output Management:** All outputs go to `output/` directory
+- **CLI:** Simple command-line interface with flags
+
+#### File Structure:
+```
+agents/
+├── __init__.py
+├── research_agent.py      (224 lines)
+├── writer_agent.py        (213 lines)
+├── fact_checker_agent.py   (182 lines)
+├── audio_agent.py         (287 lines)
+├── video_agent.py         (183 lines)
+├── publisher_agent.py     (308 lines)
+├── orchestrator.py         (282 lines)
+└── llm_client.py          (311 lines)
+```
+
+#### Usage:
+```bash
+# Basic usage
+python main.py "Your video topic"
+
+# With style
+python main.py "Your topic" --style news
+
+# With publishing
+python main.py "Your topic" --publish
+```
+
+#### Remaining Work:
+- [x] LLM integration in WriterAgent
+- [x] Web search integration in ResearchAgent (Brave API)
+- [x] TTS integration in AudioAgent (ElevenLabs + gTTS fallback)
+- [x] YouTube API integration in PublisherAgent
+- [ ] Add thumbnail generation
+- [ ] Add scheduling for delayed publishing
+- [ ] Add error recovery and retry logic
+
+#### Notes:
+- All agents are now functional with or without API keys
+- Pipeline can run fully offline with template content
+- API keys enable full AI-powered generation
+- Output directory created automatically
+
+---
+
+## 🔄 Version 2.0 Major Update - Graph-based State Machine
+
+**Date:** 2026-04-03
+
+### The Shift: Linear Script → Autonomous Newsroom
+
+The architecture has evolved from a simple linear script to a true **Graph-based State Machine** (simplified LangGraph/CrewAI pattern), optimized for the MacBook Pro i5's limited resources.
+
+### Key Changes:
+
+1. **Single Source of Truth:** `project_state.json` replaces in-memory state
+   - Prevents data loss on restart
+   - Allows stateless agents
+   - File locking via `portalocker` for safe concurrent access
+
+2. **State Machine over Swarm:**
+   - Agents run sequentially, not in parallel (CPU optimization)
+   - Main.py acts as Orchestrator, not worker
+   - `project_state.json` tracks which agent is "Active"
+
+3. **Agent Role Renaming:**
+   - Scout → Research Agent
+   - Verifier → Fact-Checker (with self-correction loop)
+   - Scribe → Writer Agent
+   - Artisan → Audio + Video Agent
+   - Publisher → Publishing Agent
+
+4. **Self-Correction Loop:** 
+   - Verifier agent now does up to 3 search passes for counter-arguments
+   - Prevents "infinite discussion" loops (max_turns=3)
+
+5. **Governor (Monitor) Role:**
+   - Orchestrator monitors RAM and can pause non-critical agents
+   - Hardware profile stored in state for optimization decisions
+
+### New Files:
+- `project_state.py` - State management with file locking
+- Updated `agents/orchestrator.py` - State machine implementation
+- `requirements.txt` - Added `portalocker`
+
+### Usage:
+```bash
+python main.py "Your topic"
+# Creates: output/video_<timestamp>_state.json
+```
+
+---
+
+### Session 8: 2026-04-03
+**Focus:** v2.0 State Machine Implementation
+
+#### Accomplishments:
+- **ProjectState Class:** Single source of truth with file locking
+  - `project_state.json` as the state file
+  - `portalocker` for safe concurrent file access
+  - Agent status tracking (registered/in_progress/completed)
+  - Metadata storage (target_duration, language, tone)
+  - Error tracking
+
+- **Orchestrator v2.0:** Graph-based State Machine
+  - All agents stateless, output to project_state
+  - Agent role constants (scout, verifier, scribe, artisan, publisher)
+  - Self-correction loop (max 3 turns) in Verifier
+  - State file path tracking for each project
+
+- **Agent Best Practices Implemented:**
+  - Scout: Saves to `assets/data/raw_news.json` equivalent
+  - Verifier: Search for counter-arguments, not just confirmation
+  - Artisan: Checks for audio file, runs ffmpeg normalization
+  - Governor: Monitors hardware profile in state
+
+#### Technical Decisions:
+- **File Locking:** Using `portalocker` to prevent corruption
+- **Sequential Execution:** No parallel agents (MacBook i5 optimization)
+- **Max Turns:** 3 to prevent infinite loops
+
+#### Remaining Work:
+- [x] ProjectState with file locking
+- [x] State Machine Orchestrator v2
+- [ ] Add video thumbnail generation
+- [ ] Add Governor RAM monitoring
+- [ ] Add scheduling for delayed publishing
+
+#### Notes:
+- This is a Major Version Bump (v2.0)
+- The shift from "Script" to "Orchestrator" is the most significant change
+- Optimized for LEGACY_INTEL profile (dual-core MacBook)
+
+---
+
+### Session 9: 2026-04-03
+**Focus:** Voice Source Selection (Pre-recorded, AI TTS, None)
+
+#### Accomplishments:
+- **Voice Source Options:** Added to AudioAgent
+  - `VoiceSource.PRE_RECORDED` - Use user's pre-recorded .mp3 file
+  - `VoiceSource.AI_TTS` - Generate with AI (ElevenLabs/gTTS)
+  - `VoiceSource.NONE` - No audio (silent video)
+
+- **Enhanced AudioAgent:**
+  - New `set_voice_source()` method
+  - New `process_audio()` method (replaces legacy `generate_voice()`)
+  - Automatic ffmpeg normalization for pre-recorded files
+  - Voice source stored in config
+
+- **CLI Updates in main.py:**
+  - `--voice [ai_tts|pre_recorded|none]` - Select voice source
+  - `--audio-path <path>` - Path to pre-recorded audio file
+
+- **Orchestrator Integration:**
+  - Reads `voice_source` from project_state metadata
+  - Configures AudioAgent based on source setting
+
+#### Usage:
+```bash
+python main.py "Your topic" --voice pre_recorded --audio-path wife_voice.mp3
+python main.py "Your topic" --voice ai_tts
+python main.py "Your topic" --voice none
+```
+
+#### Notes:
+- Default is now `ai_tts` (AI voice generation)
+- Pre-recorded option ideal for wife's voice recordings
+- Silent option useful for text-only videos
+- Audio path stored in project_state metadata
+
