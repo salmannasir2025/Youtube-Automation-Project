@@ -436,3 +436,42 @@ python main.py "Your topic"
 - This is a Major Version Bump (v2.0)
 - The shift from "Script" to "Orchestrator" is the most significant change
 - Optimized for LEGACY_INTEL profile (dual-core MacBook)
+
+---
+
+### Session 9: 2026-04-03
+**Focus:** Voice Source Selection (Pre-recorded, AI TTS, None)
+
+#### Accomplishments:
+- **Voice Source Options:** Added to AudioAgent
+  - `VoiceSource.PRE_RECORDED` - Use user's pre-recorded .mp3 file
+  - `VoiceSource.AI_TTS` - Generate with AI (ElevenLabs/gTTS)
+  - `VoiceSource.NONE` - No audio (silent video)
+
+- **Enhanced AudioAgent:**
+  - New `set_voice_source()` method
+  - New `process_audio()` method (replaces legacy `generate_voice()`)
+  - Automatic ffmpeg normalization for pre-recorded files
+  - Voice source stored in config
+
+- **CLI Updates in main.py:**
+  - `--voice [ai_tts|pre_recorded|none]` - Select voice source
+  - `--audio-path <path>` - Path to pre-recorded audio file
+
+- **Orchestrator Integration:**
+  - Reads `voice_source` from project_state metadata
+  - Configures AudioAgent based on source setting
+
+#### Usage:
+```bash
+python main.py "Your topic" --voice pre_recorded --audio-path wife_voice.mp3
+python main.py "Your topic" --voice ai_tts
+python main.py "Your topic" --voice none
+```
+
+#### Notes:
+- Default is now `ai_tts` (AI voice generation)
+- Pre-recorded option ideal for wife's voice recordings
+- Silent option useful for text-only videos
+- Audio path stored in project_state metadata
+
