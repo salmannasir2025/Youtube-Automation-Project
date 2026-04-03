@@ -144,3 +144,54 @@
 - Orchestrator creates branch from main to keep original code clean
 - Agent architecture inspired by AutoGen/CrewAI patterns but custom-built for this use case
 
+---
+
+### Session 5: 2026-04-03
+**Focus:** API Integration & Environment Configuration
+
+#### Accomplishments:
+- **Enhanced APIManager:** Full implementation with:
+  - Multi-provider support: Gemini, Grok, Brave Search, ElevenLabs, YouTube
+  - Environment variable loading from `.env` file via `python-dotenv`
+  - Automatic key detection and configuration
+  - Provider failover logic (Gemini → Grok)
+  - Encryption utilities for secure key storage
+  - Configuration getters for each service (`get_llm_config()`, `get_brave_config()`, etc.)
+
+- **Created .env.example:** Template with all API keys:
+  - `GEMINI_API_KEY` / `GROK_API_KEY` (LLM)
+  - `BRAVE_API_KEY` (ResearchAgent web search)
+  - `ELEVENLABS_API_KEY` (AudioAgent TTS)
+  - `YOUTUBE_API_KEY` (PublisherAgent)
+  - Model override options
+
+- **Environment Setup:** Added auto-loading from `.env` file in project root
+
+#### Technical Decisions:
+- **Key Priority:** Gemini preferred, Grok as fallback for LLM
+- **Provider Methods:** Each service has dedicated `get_*_config()` method
+- **Failover:** `get_active_brain()` returns first available LLM key
+- **Encryption:** Fernet-based encryption for storing keys securely
+
+#### Environment Setup (User Steps):
+```bash
+# 1. Copy template
+cp .env.example .env
+
+# 2. Edit .env with your API keys
+nano .env
+```
+
+#### Remaining Work:
+- [x] API Manager basic implementation
+- [ ] LLM integration in WriterAgent (connect to APIManager)
+- [ ] Web search integration in ResearchAgent (Brave API)
+- [ ] TTS integration in AudioAgent (ElevenLabs)
+- [ ] YouTube API integration in PublisherAgent
+- [ ] Add error handling for rate limits and API failures
+
+#### Notes:
+- System works without optional APIs (graceful degradation)
+- All API calls use environment variables - no hardcoded keys
+- Add `python-dotenv` to requirements.txt if missing
+
