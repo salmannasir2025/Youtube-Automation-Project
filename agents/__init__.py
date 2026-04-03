@@ -1,5 +1,6 @@
 """
 Agents Package - Multi-agent system for video creation pipeline
+v2.0 - Graph-based State Machine Architecture
 """
 
 from .research_agent import ResearchAgent
@@ -24,3 +25,12 @@ __all__ = [
     "PipelineState",
     "LLMClient"
 ]
+
+# Agent role mapping
+AGENT_ROLES = {
+    "scout": "ResearchAgent",       # Searches and gathers information
+    "verifier": "FactCheckerAgent", # Verifies claims with self-correction
+    "scribe": "WriterAgent",        # Converts research to script
+    "artisan": "AudioAgent + VideoAgent",  # Audio and video generation
+    "publisher": "PublisherAgent"  # Publishes to platforms
+}

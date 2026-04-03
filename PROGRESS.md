@@ -346,3 +346,93 @@ python main.py "Your topic" --publish
 - Pipeline can run fully offline with template content
 - API keys enable full AI-powered generation
 - Output directory created automatically
+
+---
+
+## 🔄 Version 2.0 Major Update - Graph-based State Machine
+
+**Date:** 2026-04-03
+
+### The Shift: Linear Script → Autonomous Newsroom
+
+The architecture has evolved from a simple linear script to a true **Graph-based State Machine** (simplified LangGraph/CrewAI pattern), optimized for the MacBook Pro i5's limited resources.
+
+### Key Changes:
+
+1. **Single Source of Truth:** `project_state.json` replaces in-memory state
+   - Prevents data loss on restart
+   - Allows stateless agents
+   - File locking via `portalocker` for safe concurrent access
+
+2. **State Machine over Swarm:**
+   - Agents run sequentially, not in parallel (CPU optimization)
+   - Main.py acts as Orchestrator, not worker
+   - `project_state.json` tracks which agent is "Active"
+
+3. **Agent Role Renaming:**
+   - Scout → Research Agent
+   - Verifier → Fact-Checker (with self-correction loop)
+   - Scribe → Writer Agent
+   - Artisan → Audio + Video Agent
+   - Publisher → Publishing Agent
+
+4. **Self-Correction Loop:** 
+   - Verifier agent now does up to 3 search passes for counter-arguments
+   - Prevents "infinite discussion" loops (max_turns=3)
+
+5. **Governor (Monitor) Role:**
+   - Orchestrator monitors RAM and can pause non-critical agents
+   - Hardware profile stored in state for optimization decisions
+
+### New Files:
+- `project_state.py` - State management with file locking
+- Updated `agents/orchestrator.py` - State machine implementation
+- `requirements.txt` - Added `portalocker`
+
+### Usage:
+```bash
+python main.py "Your topic"
+# Creates: output/video_<timestamp>_state.json
+```
+
+---
+
+### Session 8: 2026-04-03
+**Focus:** v2.0 State Machine Implementation
+
+#### Accomplishments:
+- **ProjectState Class:** Single source of truth with file locking
+  - `project_state.json` as the state file
+  - `portalocker` for safe concurrent file access
+  - Agent status tracking (registered/in_progress/completed)
+  - Metadata storage (target_duration, language, tone)
+  - Error tracking
+
+- **Orchestrator v2.0:** Graph-based State Machine
+  - All agents stateless, output to project_state
+  - Agent role constants (scout, verifier, scribe, artisan, publisher)
+  - Self-correction loop (max 3 turns) in Verifier
+  - State file path tracking for each project
+
+- **Agent Best Practices Implemented:**
+  - Scout: Saves to `assets/data/raw_news.json` equivalent
+  - Verifier: Search for counter-arguments, not just confirmation
+  - Artisan: Checks for audio file, runs ffmpeg normalization
+  - Governor: Monitors hardware profile in state
+
+#### Technical Decisions:
+- **File Locking:** Using `portalocker` to prevent corruption
+- **Sequential Execution:** No parallel agents (MacBook i5 optimization)
+- **Max Turns:** 3 to prevent infinite loops
+
+#### Remaining Work:
+- [x] ProjectState with file locking
+- [x] State Machine Orchestrator v2
+- [ ] Add video thumbnail generation
+- [ ] Add Governor RAM monitoring
+- [ ] Add scheduling for delayed publishing
+
+#### Notes:
+- This is a Major Version Bump (v2.0)
+- The shift from "Script" to "Orchestrator" is the most significant change
+- Optimized for LEGACY_INTEL profile (dual-core MacBook)
