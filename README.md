@@ -1,5 +1,5 @@
 # Youtube-Automation-Project
-The Youtube-Content Factory is an Enterprise level autonomous, multi-agent video production pipeline designed to transform raw news and data into high-quality, social-media-ready video content. Originally built to optimize rendering on legacy hardware (macOS Intel i5), the system has evolved into a sophisticated "Digital Newsroom" that orchestrates specialized AI agents to handle the entire content lifecycle—from initial trend discovery to final video assembly.
+The Youtube-Content Factory is an Enterprise level autonomous, multi-agent video production pipeline designed to transform raw news and data into high-quality, social-media-ready video content. Originally built to optimize rendering on legacy hardware , the system has evolved into a sophisticated "Digital Newsroom" that orchestrates specialized AI agents to handle the entire content lifecycle—from initial trend discovery to final video assembly.
 
 Core Architecture: The Multi-Agent Newsroom
 Unlike traditional linear scripts, OSCF v2.0 utilizes a State-Driven Orchestration model. Each stage of production is managed by a dedicated agent with a specific "job description":
