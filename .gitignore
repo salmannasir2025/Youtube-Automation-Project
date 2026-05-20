@@ -41,3 +41,8 @@ MANIFEST
 
 # Logs
 *.log
+
+# --- Compliance Security Sweep Patterns ---
+.env.*
+secrets.*
+.wdm/
