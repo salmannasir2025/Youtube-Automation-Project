@@ -33,3 +33,13 @@ Video Engine: FFmpeg & MoviePy (MLT Framework compatible)
 AI Integration: Google Gemini (Scripting), Grok (Verification), ElevenLabs (TTS)
 
 Security: Local AES encryption for API credential management
+
+---
+
+## 📬 Contact & Corporate Information
+| | |
+| --- | --- |
+| **Organization** | ABT PLUS LLC (Automated Business Technologies) |
+| **Website** | [www.abtplusllc.com](https://www.abtplusllc.com) |
+| **Support** | [support@abtplusllc.com](mailto:support@abtplusllc.com) |
+| **License** | MIT — Open Source |
